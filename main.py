@@ -5,13 +5,12 @@ import os
 import pandas as pd
 import time
 import numpy as np
-import pypandoc
 
 # %% Arguments.
 # The directory to save the book.
-target = ''
+target = 'raw/听说你喜欢我'
 # The index page of the book at https://www.51shucheng.net
-source = ''
+source = 'https://www.51shucheng.net/yanqing/tingshuonixihuanwo'
 # If True, the downloading progress of chapters will be cleared. The program will overwrite from the first chapter, but
 # will not delete existed chapter files.
 clear_progress = False
@@ -38,7 +37,7 @@ chrome_110 = {
 session = Session()
 session.trust_env = False
 target = os.path.abspath(target)
-cover_path = os.path.join(target, 'index.md')
+cover_path = os.path.join(target, 'index')
 toc_path = os.path.join(target, '.toc')
 
 # %% Check workspace.
@@ -48,6 +47,8 @@ if not os.path.isdir(target):
     os.makedirs(target, exist_ok=True)
 
 # %% Download basic information.
+with open('data/book_prefix.tex', 'r') as f:
+    cover_latex = f.read()
 if (not os.path.exists(cover_path)) or (not os.path.exists(toc_path)) or clear_cover:
     cover_page = session.get(url=source, headers=chrome_110)
     if cover_page.status_code != 200:
@@ -60,9 +61,11 @@ if (not os.path.exists(cover_path)) or (not os.path.exists(toc_path)) or clear_c
         book_title = cover_text.find('div', {'class': 'catalog'}).h1.text
         book_author = re.sub('.*作者：', '', cover_text.find('div', {'class': 'info'}).text.strip())
         book_abstract = cover_text.find('div', {'class': 'intro'}).text
-        cover_markdown = f'# {book_title}\n**作者:** {book_author}\n\n**摘要:**\n\n {book_abstract}\n\n[TOC]\n\n'
-        with open(cover_path, 'w') as f:
-            f.write(cover_markdown)
+        cover_latex = cover_latex.replace(r'\title{}', r'\title{%s}' % book_title) \
+            .replace(r'\author{}', r'\author{%s}' % book_author) \
+            .replace('ABSTRACT', book_abstract)
+        with open(cover_path, 'w', encoding='utf-8') as f:
+            f.write(cover_latex)
     if (not os.path.exists(toc_path)) or clear_cover:
         chapter_list = cover_text.find('div', {'class': 'mulu-list'}).find_all('li')
         chapter_list = [[x.a.text, x.a['href']] for x in chapter_list]
@@ -79,7 +82,7 @@ if clear_progress:
     toc_df['downloaded'] = None
 chapters_not_downloaded = toc_df[toc_df['downloaded'].isna()].copy(deep=True)
 for i, chapter in chapters_not_downloaded.iterrows():
-    chapter_path = os.path.join(target, f"chapter_{i}.md")
+    chapter_path = os.path.join(target, f"chapter_{i}")
     chapter_page = session.get(url=chapter['link'], headers=chrome_110)
     if chapter_page.status_code != 200:
         print(f'[Warning] Fail to download chapter {i}. Status code: {chapter_page.status_code}. Please find the'
@@ -95,8 +98,8 @@ for i, chapter in chapters_not_downloaded.iterrows():
     chapter_normal = chapter_text.find('div', {'class': 'neirong'}).text
     chapter_normal = chapter_normal.replace('\xa0', '')
     chapter_normal = re.sub('\n+', '\n\n', chapter_normal)
-    with open(chapter_path, 'w') as f:
-        f.write('# ' + chapter_title + '\n')
+    with open(chapter_path, 'w', encoding='utf-8') as f:
+        f.write(r'\section{' + chapter_title + '}\n')
         f.write(chapter_normal)
     toc_df.loc[i, 'downloaded'] = 0
     toc_df.to_pickle(toc_path)
@@ -109,12 +112,12 @@ for i, chapter in chapters_not_downloaded.iterrows():
 # %% Compiling
 book = ''
 print('[INFO] Start to combine chapters into one file.')
-with open(cover_path, 'r') as g:
+with open(cover_path, 'r', encoding='utf-8') as g:
     book += g.read()
 for i in toc_df.index:
-    chapter_path = os.path.join(target, f'chapter_{i}.md')
+    chapter_path = os.path.join(target, f'chapter_{i}')
     try:
-        with open(chapter_path, 'r') as g:
+        with open(chapter_path, 'r', encoding='utf-8') as g:
             book += g.read()
     except FileNotFoundError:
         chapter_absent_message = f'Chapter {i} is absent. Please find it at {toc_df.loc[i, "link"]} and save ' \
@@ -123,8 +126,8 @@ for i in toc_df.index:
             raise Exception(chapter_absent_message)
         else:
             print('[INFO] ' + chapter_absent_message)
-
-# %% Convert markdown to PDF, since e-book is usually too large to render in Typora.
-book_pdf_path = os.path.join(target, 'book.docx')
-print('[INFO] Use Pandoc to convert markdown to PDF.')
-pypandoc.convert_text(source=book, to='docx', format='md', outputfile=book_pdf_path)
+with open('data/book_suffix.tex', 'r', encoding='utf-8') as f:
+    book += f.read()
+book_path = os.path.join(target, 'book.tex')
+with open(book_path, 'w', encoding='utf-8') as f:
+    f.write(book)

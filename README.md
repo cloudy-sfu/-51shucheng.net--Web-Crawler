@@ -1,32 +1,16 @@
 # “51shucheng.net” Web Crawler
- Download books from "51shucheng.net" and convert to Microsoft Word
+
+ Download books from "51shucheng.net" and convert to PDF
 
 ![](https://shields.io/badge/dependencies-Python_3.10-blue)
-![](https://shields.io/badge/dependencies-Pandoc-blue)
+![](https://shields.io/badge/dependencies-XeLaTex-blue)
 
 # Usage
 
-1.   Run `pip install -r requirements.txt` to install libraries. Specifically, if you do not have Pandoc, please install `pypandoc_binary` instead of `pypandoc`. See https://pypi.org/project/pypandoc/ for details.
-
-2.   Follow the guidance of comments and set arguments in `Arguments` section of `main.py`. For example:
-     ```python
-     # The directory to save the book.
-     target = 'raw/downloaded_book'
-     # The index page of the book at https://www.51shucheng.net
-     source = 'https://www.51shucheng.net/yanqing/tingshuonixihuanwo'
-     # If True, the downloading progress of chapters will be cleared. The program will overwrite from the first chapter, but
-     # will not delete existed chapter files.
-     clear_progress = False
-     # If True, the program will ignore `clear_progress` flag, get the table of contents, and clear the downloading progress
-     # of chapters, but will not delete existed chapter files.
-     clear_cover = False
-     # If True, the program will raise an error if a chapter is absent when combining all chapters to a book.
-     strict_compiling = True
-     ```
-
+1.   Run `pip install -r requirements.txt` to install libraries.
+2.   Follow the guidance of comments and set arguments in `Arguments` section of `main.py` and `clear_cache.py`.
 3.   Run `main.py`, you can pause at any time by pressing `Ctrl+C` (default keyboard interruption signal), and the program will resume at next run. If you want to resume from the beginning, please change `clear_progress` or `clear_cover` argument.
-
-4.   Collect the book in format of Microsoft Word at `$target/book.docx`. If you have Microsoft Word, you can click `File | Info | Convert (Compatibility Mode)` button, and print to PDF as you want.
-
-5.   If you're satisfied with the result, you can run `clear_cache.py` to clear caches generated when handling this book.
+4.   Download [SourceHanSerifCN-Regular.ttf](https://github.com/wordshub/free-font/blob/master/assets/font/%E4%B8%AD%E6%96%87/%E6%80%9D%E6%BA%90%E5%AD%97%E4%BD%93%E7%B3%BB%E5%88%97/%E6%80%9D%E6%BA%90%E5%AE%8B%E4%BD%93/SourceHanSerifCN-Regular.ttf) and put it in any directory.
+5.   Move `$target/book.tex` to the same directory as the font above, and use `XeLaTex` to compile it.
+6.   If you're satisfied with the result, you can run `clear_cache.py` to clear caches generated when handling this book.
 
